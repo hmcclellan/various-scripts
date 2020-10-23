@@ -9,17 +9,17 @@ def main():
     t0 = time.time()
 
     salt = open('../../../Desktop/dataviz/project_sandbox/salt.txt', 'r').read()
-    years = [2015, 2016, 2017, 2018, 2019]
+    years = [1977 + x for x in range(11)]
     for year in years:
-
-        newFile = open('../../../Desktop/dataviz/anonymized' +
-                       '_tcm_'+str(year)+'.csv', "w")
+        newFile = open('../../../Desktop/dataviz/project_sandbox/' +
+                       'grandmas_marathon/anonymized' +
+                       '_grandmas_'+str(year)+'.csv', "w")
         writer = csv.writer(newFile)
 
-        with open('../../../Desktop/dataviz/project_sandbox/tcm_'+str(year)+'.csv') as oldFile:
+        with open('../../../Desktop/dataviz/project_sandbox/grandmas_marathon/' +
+                  'grandmas_'+str(year)+'.csv') as oldFile:
             readCSV = csv.reader(oldFile, delimiter=',')
             headers = next(readCSV, None)
-            print headers
             writer.writerow(headers)
 
             for row in readCSV:
