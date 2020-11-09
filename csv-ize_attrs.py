@@ -7,7 +7,7 @@ def main():
     t0 = time.time()
     super_keys = {}
 
-    with open('./attribs.csv') as oldFile:
+    with open('./attribs2.csv') as oldFile:
         readCSV = csv.reader(oldFile, delimiter=',')
         next(readCSV, None)
 
@@ -17,8 +17,8 @@ def main():
             updated = row[0]
             updated = updated.replace("\"u'", "\"'")
             updated = updated.replace("'", "\"")
-            updated = updated.replace("False", "\"False\"")
-            updated = updated.replace("True", "\"True\"")
+            updated = updated.replace("False", "0")
+            updated = updated.replace("True", "1")
             updated = updated.replace("\"\"", "\"")
             updated = updated.replace("\"{", "{")
             updated = updated.replace("}\"", "}")
@@ -36,11 +36,13 @@ def main():
 
     oldFile.close()
 
-    with open('./attribs.csv') as oldFile:
+    # add blanks
+
+    with open('./attribs2.csv') as oldFile:
         readCSV = csv.reader(oldFile, delimiter=',')
         next(readCSV, None)
 
-        newFile = open('./attr_hash.csv', "w")
+        newFile = open('./attr_hash_2.csv', "w")
         writer = csv.writer(newFile)
 
         readCSV = csv.reader(oldFile, delimiter=',')
@@ -53,8 +55,8 @@ def main():
             updated = row[0]
             updated = updated.replace("\"u'", "\"'")
             updated = updated.replace("'", "\"")
-            updated = updated.replace("False", "\"False\"")
-            updated = updated.replace("True", "\"True\"")
+            updated = updated.replace("False", "0")
+            updated = updated.replace("True", "1")
             updated = updated.replace("\"\"", "\"")
             updated = updated.replace("\"{", "{")
             updated = updated.replace("}\"", "}")
@@ -77,7 +79,6 @@ def main():
                 else:
                     if(val_to_check_for in as_json):
                         this_val = as_json[val_to_check_for]
-                print(this_val)
                 all_vals.append(this_val)
 
             writer.writerow(all_vals)
