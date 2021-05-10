@@ -1,0 +1,239 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+devtools::install_github('charlie86/spotifyr')
+install.packages("semPlot")
+library(semPlot) 
+library(GPArotation)
+library(psych)
+library(lme4)
+
+```
+
+
+```{r}
+
+library("xts")
+library(ggplot2)
+library(forecast)
+library(dplyr)
+library(lubridate)
+library(tseries)
+library(tidyquant)
+library(vars)
+```
+
+
+```{r}
+#spotify-specific libraries
+library(spotifyr)
+library(plyr)
+library(tidyverse)
+library(httr)
+
+
+# set up Spotify client ID and client secret
+Sys.setenv(SPOTIFY_CLIENT_ID = 'add me')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'add me')
+spotify_tracks_ariana =get_artist_audio_features('ariana grande') 
+
+spotify_tracks_dua_lipa = get_artist_audio_features("billie eilish")
+
+grammy_nominees=c('megan thee stallion', 'ingrid andress', 'phoebe bridgers','chika','noah cyrus', 'd smoke', 'doja cat', 'kaytranada')
+grammy_data=vector(length=8)
+
+```
+
+
+```{r}
+
+grammy_nominees=c('megan thee stallion', 'phoebe bridgers','chika','noah cyrus', 'd smoke', 'doja cat', 'kaytranada', 'ingrid andress')
+
+specific_albums=c('Suga', 'Punisher','INDUSTRY GAMES','THE END OF EVERYTHING','Black Habits','Hot Pink','BUBBA', 'Lady Like')
+
+columns_tracks = c("danceability_mean", "acousticness_mean", "speechiness_mean", "instrumentalness_mean", "liveness_mean", "valence_mean", "energy_mean", "loudness_mean", "danceability_sd", "acousticness_sd", "speechiness_sd", "instrumentalness_sd", "liveness_sd", "valence_sd","energy_sd", "loudness_sd")
+grammy_data=NULL
+grammy_data=vector(length=8)
+for(i in 1:8){
+  artist_info= filter(get_artist_audio_features(grammy_nominees[i]), album_name==specific_albums[i])
+  grammy_data[i] = artist_info
+  
+}
+```
+
+```{r}
+
+megan=filter(get_artist_audio_features(grammy_nominees[1]))
+
+song_aggregate = data.frame(matrix(ncol=ncol(megan)+8,nrow=1, dimnames=list(NULL,c(colnames(megan),c("danceability_scaled", "acousticness_scaled", "speechiness_scaled", "instrumentalness_scaled", "liveness_scaled", "valence_scaled", "energy_scaled", "loudness_scaled")))))
+
+
+
+for(i in 1:8){
+  artist_album=get_artist_audio_features(grammy_nominees[i])
+  new_album= filter(artist_album, album_name==specific_albums[i])
+  # columns=c(9:10,12,14:15,17:18)
+  columns=c(41:42,44:47)
+  artist_name=grammy_nominees[i]
+  album_name = new_album$album_name[1]
+  print(album_name)
+  new_album$danceability_scaled = scale(new_album$danceability)
+  new_album$acousticness_scaled = scale(new_album$acousticness)
+  new_album$speechiness_scaled = scale(new_album$speechiness)
+  new_album$instrumentalness_scaled = scale(new_album$instrumentalness)
+  new_album$liveness_scaled = scale(new_album$liveness)
+  new_album$valence_scaled = scale(new_album$valence)
+  new_album$energy_scaled = scale(new_album$energy)
+  new_album$loudness_scaled = scale(new_album$loudness)  
+  song_aggregate = rbind(song_aggregate,new_album)
+
+
+new_album.pca1=prcomp(new_album[,columns])
+new_album.pca1$sdev
+new_album.pca1$rotation
+plot(new_album.pca1, type="l", main=album_name)
+biplot(new_album.pca1, cex=c(0.1, 0.5), main=album_name)
+
+new_album.fa1 = factanal(new_album[,columns], factors=2, scores="regression")
+print(new_album.fa1)
+new_album.fa2 = factanal(new_album[,columns], factors=3, scores="regression")
+print(new_album.fa2)
+
+new_album.fa3 = factanal(new_album[,columns], factors=3, rotation="varimax", scores="regression")
+semPaths(new_album.fa3, what="est", residuals=FALSE, cut=0.3, posCol=c("white", "blue"), negCol=c("white", "red"), edge.label.cex=1.0, nCharNodes=7)
+title(paste(artist_name,album_name))
+
+}
+
+
+song_aggregate = filter(song_aggregate, !is.na(c(artist_id)))
+
+ggplot(song_aggregate, aes(x=danceability,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Danceability",y="Artist")
+
+ggplot(song_aggregate, aes(x=loudness,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Loudness",y="Artist")
+ggplot(song_aggregate, aes(x=acousticness,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Acousticness",y="Artist")
+ggplot(song_aggregate, aes(x=speechiness,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Speechiness",y="Artist")
+ggplot(song_aggregate, aes(x=instrumentalness,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Instrumentalness",y="Artist")
+ggplot(song_aggregate, aes(x=liveness,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Liveness",y="Artist")
+ggplot(song_aggregate, aes(x=valence,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Valence",y="Artist")
+ggplot(song_aggregate, aes(x=energy,y=artist_name, color=artist_name)) + 
+    geom_boxplot()+labs(title="Energy",y="Artist")
+
+ggplot(song_aggregate, aes(x=danceability)) + 
+    geom_boxplot()+labs(title="Danceability")
+ggplot(song_aggregate, aes(x=loudness)) + 
+    geom_boxplot()+labs(title="Loudness")
+ggplot(song_aggregate, aes(x=acousticness)) + 
+    geom_boxplot()+labs(title="Acousticness")
+ggplot(song_aggregate, aes(x=speechiness)) + 
+    geom_boxplot()+labs(title="Speechiness")
+ggplot(song_aggregate, aes(x=instrumentalness)) + 
+    geom_boxplot()+labs(title="Instrumentalness")
+ggplot(song_aggregate, aes(x=liveness)) + 
+    geom_boxplot()+labs(title="Liveness")
+ggplot(song_aggregate, aes(x=valence)) + 
+    geom_boxplot()+labs(title="Valence")
+ggplot(song_aggregate, aes(x=energy)) + 
+    geom_boxplot()+labs(title="Energy")
+
+
+summarize_at(song_aggregate, c("danceability","loudness","acousticness","speechiness","instrumentalness","liveness","valence","energy"), mean,na.rm = TRUE)
+summarize_at(song_aggregate, c("danceability","loudness","acousticness","speechiness","instrumentalness","liveness","valence","energy"), sd,na.rm = TRUE)
+
+
+summarize_at(group_by(song_aggregate, artist_name), c("danceability","loudness","acousticness","speechiness","instrumentalness","liveness","valence","energy"), mean,na.rm = TRUE)
+summarize_at(group_by(song_aggregate, artist_name), c("danceability","loudness","acousticness","speechiness","instrumentalness","liveness","valence","energy"), sd,na.rm = TRUE)
+
+```
+
+
+```{r}
+
+
+
+columns_albums = c("id","name","popularity")
+col_names=c(columns_albums,columns_tracks)
+album_aggregate = data.frame(matrix(ncol=length(col_names),nrow=8, dimnames=list(NULL,col_names)))
+album_aggregate[, c(3:19)] <- sapply(album_aggregate[, c(3:19)], as.double)
+
+
+for(i in 1:8){
+  artist_album=filter(get_artist_audio_features(grammy_nominees[i]))
+  new_album= filter(artist_album, album_name==specific_albums[i])
+  album_response = get_album(artist_album$album_id[1])
+  
+  album_aggregate$id[i] = artist_album$album_id[1]
+  album_aggregate$name[i] = album_response$name
+  album_aggregate$popularity[i] = album_response$popularity
+  album_aggregate$danceability_mean[i] = mean(new_album$danceability)
+  album_aggregate$acousticness_mean[i] = mean(new_album$acousticness)
+  album_aggregate$speechiness_mean[i] = mean(new_album$speechiness)
+  album_aggregate$instrumentalness_mean[i] = mean(new_album$instrumentalness)
+  album_aggregate$liveness_mean[i] = mean(new_album$liveness)
+  album_aggregate$valence_mean[i] = mean(new_album$valence)
+  album_aggregate$energy_mean[i] = mean(new_album$energy)
+  album_aggregate$loudness_mean[i]= mean(new_album$loudness)
+  album_aggregate$danceability_sd[i] = sd(new_album$danceability)
+  album_aggregate$acousticness_sd[i] = sd(new_album$acousticness)
+  album_aggregate$speechiness_sd[i] =sd(new_album$speechiness)
+  album_aggregate$instrumentalness_sd[i] =sd(new_album$instrumentalness)
+  album_aggregate$liveness_sd[i] =sd(new_album$liveness)
+  album_aggregate$valence_sd[i] =sd(new_album$valence)
+  album_aggregate$energy_sd[i] =sd(new_album$energy)
+  album_aggregate$loudness_sd[i] =sd(new_album$loudness)
+  
+  
+  columns=c(9:10,12,14:15,17:18)
+  artist_name=grammy_nominees[i]
+  album_name = new_album$album_name[1]
+  
+
+}
+
+columns_means = c(4:11)
+columns_variances = c(12:19)
+
+album_aggregate = filter(album_aggregate, !is.na(id))
+
+columns_song_ag=c(40:42,44:47)
+
+song_aggregate.pca1=prcomp(song_aggregate[,columns_song_ag])
+song_aggregate.pca1$sdev
+song_aggregate.pca1$rotation
+plot(song_aggregate.pca1, type="l" )
+biplot(song_aggregate.pca1, cex=c(0.1, 0.5))
+
+
+aggregate_mean = lm(formula = popularity~loudness_mean+liveness_mean+instrumentalness_mean+energy_mean,data=album_aggregate)
+aggregate_mean_no_outliers = lm(formula = popularity ~ danceability_mean + acousticness_mean + speechiness_mean + valence_mean + loudness_mean, data=album_aggregate)
+
+aggregate_sd_no_outliers = lm(formula = popularity ~ danceability_sd + acousticness_sd + speechiness_sd + valence_sd + loudness_sd, data=album_aggregate)
+
+aggregate_sd = lm(formula = popularity~instrumentalness_sd+liveness_sd+loudness_sd+energy_sd,data=album_aggregate)
+
+
+aggregate_combo = lm(formula = popularity ~ danceability_mean+ speechiness_mean+ liveness_mean, data=album_aggregate)
+
+summary(aggregate_combo)
+
+summary(aggregate_mean)
+summary(aggregate_mean_no_outliers)
+summary(aggregate_sd_no_outliers)
+
+summary(aggregate_sd)
+
+```
